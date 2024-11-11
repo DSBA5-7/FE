@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>CreditNews</title>
+</head>
+<body>
+    <header>
+        <a href="index.html">
+            <img src="logo.png" alt="logo" style="height: 50px;">
+        </a>
+    </header>
+    <div class="container">
+        <h1>CreditNews</h1>
+            <input type="text" id="detailed-address" placeholder="URL 입력" style="width: 515px; margin-right: 5px; margin-top: 10.7px;">
+            <button id="search-button" onclick="searchProperty()">Search</button>
+    </div>
+    <script>
+        function searchProperty() {
+            const address = document.getElementById('property-address').value;
+            if (address) {
+                // 매물 주소를 쿼리 파라미터로 전달하며 result.html로 이동
+                window.location.href = `result.html?address=${encodeURIComponent(address)}`;
+            } else {
+                alert("매물 주소를 입력하세요.");
+            }
+        }
+    </script>
+</body>
+</html>
