@@ -9,23 +9,83 @@
 <body>
     <header>
         <a href="index.html">
-            <img src="logo.png" alt="logo" style="height: 50px;">
+            <img src="images/logo.png" alt="logo" style="height: 50px;">
         </a>
     </header>
     <div class="container">
         <h1>CreditNews</h1>
-            <input type="text" id="detailed-address" placeholder="URL 입력" style="width: 515px; margin-right: 5px; margin-top: 10.7px;">
-            <button id="search-button" onclick="searchProperty()">Search</button>
+        <input type="text" id="detailed-address" placeholder="URL 입력" style="width: 515px; margin-right: 5px; margin-top: 10.7px;">
+        <button id="search-button">Search</button>
     </div>
+    <div id="results" class="container" style="display: none;">
+        <h1>신뢰도: %</h1>
+        <p id="result"></p>
+        <ul id="related-articles"></ul>
+    </div>
+
     <script>
-        function searchProperty() {
-            const address = document.getElementById('property-address').value;
-            if (address) {
-                // 매물 주소를 쿼리 파라미터로 전달하며 result.html로 이동
-                window.location.href = `result.html?address=${encodeURIComponent(address)}`;
-            } else {
-                alert("매물 주소를 입력하세요.");
+        // 임시 데이터가 없을 경우 localStorage에 저장
+        if (!localStorage.getItem('newsData')) {
+            const sampleData = [
+                {
+                    image_url: "https://via.placeholder.com/150",
+                    title: "관련 기사 1",
+                    media: "신문사 A",
+                    url: "https://example.com/article1"
+                },
+                {
+                    image_url: "https://via.placeholder.com/150",
+                    title: "관련 기사 2",
+                    media: "신문사 B",
+                    url: "https://example.com/article2"
+                }
+            ];
+            localStorage.setItem('newsData', JSON.stringify(sampleData));
+        }
+
+        // URL 유효성 검사 함수
+        function isValidURL(url) {
+            const pattern = /^(https?:\/\/)?([\w\-]+(\.[\w\-]+)+)(\/[\w\-._~:/?#[\]@!$&'()*+,;=]*)?$/;
+            return pattern.test(url);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchButton = document.getElementById('search-button');
+            if (searchButton) {
+                searchButton.onclick = function() {
+                    searchProperty();
+                };
             }
+        });
+
+        function searchProperty() {
+            const address = document.getElementById('detailed-address').value;
+            const resultDiv = document.getElementById('results');
+            const resultText = document.getElementById('result');
+            const relatedArticlesList = document.getElementById('related-articles');
+
+            if (!isValidURL(address)) {
+                alert("유효한 URL을 입력하세요.");
+                return;
+            }
+
+            const newsInfo = JSON.parse(localStorage.getItem('newsData') || '[]');
+            // resultText.innerText = `${address}\n이 기사의 신뢰도는 %입니다.`;
+
+            relatedArticlesList.innerHTML = ""; // 기존 내용 삭제
+            newsInfo.forEach(news => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <h3>${news.title}</h3>
+                    <p>신문사: ${news.media}</p>
+                    <a href="${news.url}" target="_blank">
+                        <img src="${news.image_url}" alt="${news.title}" style="height: 100px; width: auto;">
+                    </a>
+                `;
+                relatedArticlesList.appendChild(listItem);
+            });
+
+            resultDiv.style.display = "block";
         }
     </script>
 </body>
