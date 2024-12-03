@@ -9,77 +9,83 @@
 <body>
     <header>
         <a href="index.html">
-            <img src="images/logo.png" alt="logo" style="height: 50px;">
+            <p style="font-size: 30px; font-weight: bold; margin: 0; color: white;">CNS</p>
         </a>
     </header>
     <div class="container">
         <h1>CreditNews</h1>
-        <input type="text" id="detailed-address" placeholder="URL 입력" style="width: 515px; margin-right: 5px; margin-top: 10.7px;">
-        <button id="search-button">Search</button>
+        <div class="input-group">
+            <input type="text" id="detailed-address" placeholder="URL 입력">
+            <button id="search-button">Search</button>
+        </div>
     </div>
     <div id="results" class="container" style="display: none;">
-        <h1>신뢰도: %</h1>
+        <h1>신뢰도: <span id="credibility"></span>%</h1>
         <p id="result"></p>
         <ul id="related-articles"></ul>
     </div>
 
     <script>
-        // 임시 데이터가 없을 경우 localStorage에 저장
-        if (!localStorage.getItem('newsData')) {
-            const sampleData = [
-                {
-                    image_url: "https://via.placeholder.com/150",
-                    title: "관련 기사 1",
-                    media: "신문사 A",
-                    url: "https://example.com/article1"
-                },
-                {
-                    image_url: "https://via.placeholder.com/150",
-                    title: "관련 기사 2",
-                    media: "신문사 B",
-                    url: "https://example.com/article2"
-                }
-            ];
-            localStorage.setItem('newsData', JSON.stringify(sampleData));
-        }
-
         // URL 유효성 검사 함수
         function isValidURL(url) {
             const pattern = /^(https?:\/\/)?([\w\-]+(\.[\w\-]+)+)(\/[\w\-._~:/?#[\]@!$&'()*+,;=]*)?$/;
             return pattern.test(url);
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const searchButton = document.getElementById('search-button');
             if (searchButton) {
-                searchButton.onclick = function() {
-                    searchProperty();
+                searchButton.onclick = async function () {
+                    const address = document.getElementById('detailed-address').value;
+
+                    if (!isValidURL(address)) {
+                        alert("유효한 URL을 입력하세요.");
+                        return;
+                    }
+
+                    try {
+                        // Fetch API를 사용하여 URL을 Spring 서버로 전송
+                        const response = await fetch('/api/analyze', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ url: address })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('서버 요청 실패');
+                        }
+
+                        const data = await response.json();
+                        displayResults(data);
+                    } catch (error) {
+                        console.error('에러:', error);
+                        alert("결과를 가져오는 중 오류가 발생했습니다.");
+                    }
                 };
             }
         });
 
-        function searchProperty() {
-            const address = document.getElementById('detailed-address').value;
+        function displayResults(data) {
             const resultDiv = document.getElementById('results');
+            const credibilitySpan = document.getElementById('credibility');
             const resultText = document.getElementById('result');
             const relatedArticlesList = document.getElementById('related-articles');
 
-            if (!isValidURL(address)) {
-                alert("유효한 URL을 입력하세요.");
-                return;
-            }
+            // 메인 기사 정보 표시
+            credibilitySpan.textContent = data.mainArticle.similarityScore;
+            resultText.innerText = `기사 제목: ${data.mainArticle.title}`;
 
-            const newsInfo = JSON.parse(localStorage.getItem('newsData') || '[]');
-            // resultText.innerText = `${address}\n이 기사의 신뢰도는 %입니다.`;
-
-            relatedArticlesList.innerHTML = ""; // 기존 내용 삭제
-            newsInfo.forEach(news => {
+            // 관련 기사 목록 초기화 및 표시
+            relatedArticlesList.innerHTML = "";
+            data.relatedArticles.forEach(news => {
                 const listItem = document.createElement('li');
                 listItem.innerHTML = `
                     <h3>${news.title}</h3>
                     <p>신문사: ${news.media}</p>
                     <a href="${news.url}" target="_blank">
-                        <img src="${news.image_url}" alt="${news.title}" style="height: 100px; width: auto;">
+                        <img src="${news.imageUrl}" alt="${news.title}" style="height: 100px; width: auto;">
                     </a>
                 `;
                 relatedArticlesList.appendChild(listItem);
