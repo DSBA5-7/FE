@@ -26,69 +26,74 @@
     </div>
 
     <script>
-        // 임시 데이터가 없을 경우 localStorage에 저장
-        if (!localStorage.getItem('newsData')) {
-            const sampleData = [
-                {
-                    image_url: "https://via.placeholder.com/150",
-                    title: "관련 기사 1",
-                    media: "신문사 A",
-                    url: "https://example.com/article1"
-                },
-                {
-                    image_url: "https://via.placeholder.com/150",
-                    title: "관련 기사 2",
-                    media: "신문사 B",
-                    url: "https://example.com/article2"
-                }
-            ];
-            localStorage.setItem('newsData', JSON.stringify(sampleData));
-        }
-
         // URL 유효성 검사 함수
         function isValidURL(url) {
             const pattern = /^(https?:\/\/)?([\w\-]+(\.[\w\-]+)+)(\/[\w\-._~:/?#[\]@!$&'()*+,;=]*)?$/;
             return pattern.test(url);
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchButton = document.getElementById('search-button');
-            if (searchButton) {
-                searchButton.onclick = function() {
-                    searchProperty();
-                };
+    
+        // Flask API에서 뉴스 데이터 가져오기
+        async function fetchNewsData(url) {
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url }) // URL 데이터 전송
+                });
+                if (!response.ok) {
+                    throw new Error('데이터를 불러오는 데 실패했습니다.');
+                }
+                const newsData = await response.json();
+                return newsData;
+            } catch (error) {
+                console.error('데이터 로드 오류:', error);
+                return null;
             }
-        });
-
-        function searchProperty() {
-            const address = document.getElementById('detailed-address').value;
-            const resultDiv = document.getElementById('results');
-            const resultText = document.getElementById('result');
-            const relatedArticlesList = document.getElementById('related-articles');
-
-            if (!isValidURL(address)) {
-                alert("유효한 URL을 입력하세요.");
-                return;
-            }
-
-            const newsInfo = JSON.parse(localStorage.getItem('newsData') || '[]');
-            // resultText.innerText = `${address}\n이 기사의 신뢰도는 %입니다.`;
-
-            relatedArticlesList.innerHTML = ""; // 기존 내용 삭제
-            newsInfo.forEach(news => {
-                const listItem = document.createElement('li');
-                listItem.innerHTML = `
-                    <h3>${news.title}</h3>
-                    <p>신문사: ${news.media}</p>
-                    <a href="${news.url}" target="_blank">
-                        <img src="${news.image_url}" alt="${news.title}" style="height: 100px; width: auto;">
-                    </a>
-                `;
-                relatedArticlesList.appendChild(listItem);
-            });
-
-            resultDiv.style.display = "block";
         }
-    </script>
+    
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchButton = document.getElementById('search-button');
+            searchButton.onclick = async function () {
+                const address = document.getElementById('detailed-address').value;
+                const resultDiv = document.getElementById('results');
+                const relatedArticlesList = document.getElementById('related-articles');
+                const credibilitySpan = document.getElementById('credibility');
+    
+                // URL 유효성 검사
+                if (!isValidURL(address)) {
+                    alert("유효한 URL을 입력하세요.");
+                    return;
+                }
+    
+                // API 호출 및 데이터 처리
+                const newsData = await fetchNewsData(address);
+                if (!newsData) {
+                    alert("뉴스 데이터를 불러오는 데 실패했습니다.");
+                    return;
+                }
+    
+                // 신뢰도 데이터 표시
+                const credibility = newsData.credibility || 0;
+                credibilitySpan.textContent = credibility;
+    
+                // 관련 기사 목록 표시
+                relatedArticlesList.innerHTML = ""; // 기존 내용 삭제
+                const similarArticles = newsData.similar_articles || [];
+                similarArticles.forEach(article => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `
+                        <h3>${article.title}</h3>
+                        <p>유사도: ${article.similarity}%</p>
+                        <p>감정 분석: ${article.emotion}</p>
+                        <a href="${article.url}" target="_blank">기사 링크</a>
+                    `;
+                    relatedArticlesList.appendChild(listItem);
+                });
+    
+                // 결과 화면 표시
+                resultDiv.style.display = "block";
+            };
+        });
+    </script>    
 </body>
 </html>
