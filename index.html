@@ -26,66 +26,62 @@
     </div>
 
     <script>
+        // 임시 데이터가 없을 경우 localStorage에 저장
+        if (!localStorage.getItem('newsData')) {
+            const sampleData = [
+                {
+                    image_url: "https://via.placeholder.com/150",
+                    title: "관련 기사 1",
+                    media: "신문사 A",
+                    url: "https://example.com/article1"
+                },
+                {
+                    image_url: "https://via.placeholder.com/150",
+                    title: "관련 기사 2",
+                    media: "신문사 B",
+                    url: "https://example.com/article2"
+                }
+            ];
+            localStorage.setItem('newsData', JSON.stringify(sampleData));
+        }
+
         // URL 유효성 검사 함수
         function isValidURL(url) {
             const pattern = /^(https?:\/\/)?([\w\-]+(\.[\w\-]+)+)(\/[\w\-._~:/?#[\]@!$&'()*+,;=]*)?$/;
             return pattern.test(url);
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const searchButton = document.getElementById('search-button');
             if (searchButton) {
-                searchButton.onclick = async function () {
-                    const address = document.getElementById('detailed-address').value;
-
-                    if (!isValidURL(address)) {
-                        alert("유효한 URL을 입력하세요.");
-                        return;
-                    }
-
-                    try {
-                        // Fetch API를 사용하여 URL을 Spring 서버로 전송
-                        const response = await fetch('/api/analyze', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ url: address })
-                        });
-
-                        if (!response.ok) {
-                            throw new Error('서버 요청 실패');
-                        }
-
-                        const data = await response.json();
-                        displayResults(data);
-                    } catch (error) {
-                        console.error('에러:', error);
-                        alert("결과를 가져오는 중 오류가 발생했습니다.");
-                    }
+                searchButton.onclick = function() {
+                    searchProperty();
                 };
             }
         });
 
-        function displayResults(data) {
+        function searchProperty() {
+            const address = document.getElementById('detailed-address').value;
             const resultDiv = document.getElementById('results');
-            const credibilitySpan = document.getElementById('credibility');
             const resultText = document.getElementById('result');
             const relatedArticlesList = document.getElementById('related-articles');
 
-            // 메인 기사 정보 표시
-            credibilitySpan.textContent = data.mainArticle.similarityScore;
-            resultText.innerText = `기사 제목: ${data.mainArticle.title}`;
+            if (!isValidURL(address)) {
+                alert("유효한 URL을 입력하세요.");
+                return;
+            }
 
-            // 관련 기사 목록 초기화 및 표시
-            relatedArticlesList.innerHTML = "";
-            data.relatedArticles.forEach(news => {
+            const newsInfo = JSON.parse(localStorage.getItem('newsData') || '[]');
+            // resultText.innerText = `${address}\n이 기사의 신뢰도는 %입니다.`;
+
+            relatedArticlesList.innerHTML = ""; // 기존 내용 삭제
+            newsInfo.forEach(news => {
                 const listItem = document.createElement('li');
                 listItem.innerHTML = `
                     <h3>${news.title}</h3>
                     <p>신문사: ${news.media}</p>
                     <a href="${news.url}" target="_blank">
-                        <img src="${news.imageUrl}" alt="${news.title}" style="height: 100px; width: auto;">
+                        <img src="${news.image_url}" alt="${news.title}" style="height: 100px; width: auto;">
                     </a>
                 `;
                 relatedArticlesList.appendChild(listItem);
